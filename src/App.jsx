@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
-// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDuXMfvkNFkt8uGxFrrgQPYfpDS-XRVhQ",
   authDomain: "kids-points-7bbee.firebaseapp.com",
@@ -34,7 +33,7 @@ export default function App() {
     history: []
   });
 
-  // 🔥 即時同步
+  // 🔥 同步
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "family", "main"), (docSnap) => {
       if (docSnap.exists()) {
@@ -44,88 +43,60 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // 🔥 更新資料
-  const patchState = (updates) => {
-    setState(prev => {
-      const newState = { ...prev, ...updates };
-      setDoc(doc(db, "family", "main"), newState);
-      return newState;
-    });
+  const patchState = (newState) => {
+    setState(newState);
+    setDoc(doc(db, "family", "main"), newState);
   };
 
   const activeKid = state.kids.find(k => k.id === state.activeKidId);
 
-  // 加點
-  const addPoint = (point) => {
+  const addPoint = (p) => {
     const kids = state.kids.map(k =>
       k.id === state.activeKidId
-        ? { ...k, points: k.points + point }
+        ? { ...k, points: k.points + p }
         : k
     );
 
     patchState({
+      ...state,
       kids,
-      history: [
-        ...state.history,
-        `${activeKid.name} +${point}`
-      ]
+      history: [...state.history, `${activeKid.name} +${p}`]
     });
   };
 
-  // 兌換
-  const redeem = (reward) => {
-    if (activeKid.points < reward.cost) return;
+  const redeem = (r) => {
+    if (activeKid.points < r.cost) return;
 
     const kids = state.kids.map(k =>
       k.id === state.activeKidId
-        ? { ...k, points: k.points - reward.cost }
+        ? { ...k, points: k.points - r.cost }
         : k
     );
 
     patchState({
+      ...state,
       kids,
-      history: [
-        ...state.history,
-        `${activeKid.name} 兌換 ${reward.name}`
-      ]
+      history: [...state.history, `${activeKid.name} 兌換 ${r.name}`]
     });
   };
 
-  // 排行榜
   const ranking = [...state.kids].sort((a, b) => b.points - a.points);
 
   return (
-    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
+    <div style={{ padding: 20 }}>
       <h2>好習慣存摺 ⭐</h2>
 
-      {/* 切換人物 */}
-      <div style={{ marginBottom: 10 }}>
-        {state.kids.map(k => (
-          <button
-            key={k.id}
-            onClick={() => patchState({ activeKidId: k.id })}
-            style={{
-              marginRight: 10,
-              padding: 10,
-              background: state.activeKidId === k.id ? "#000" : "#ddd",
-              color: state.activeKidId === k.id ? "#fff" : "#000"
-            }}
-          >
-            {k.name}
-          </button>
-        ))}
-      </div>
+      {/* 切換人 */}
+      {state.kids.map(k => (
+        <button key={k.id} onClick={() => patchState({ ...state, activeKidId: k.id })}>
+          {k.name}
+        </button>
+      ))}
 
-      {/* 左右卡片 */}
+      {/* 卡片 */}
       <div style={{ display: "flex", gap: 20 }}>
         {state.kids.map(k => (
-          <div key={k.id} style={{
-            flex: 1,
-            padding: 20,
-            borderRadius: 20,
-            background: k.id === 1 ? "#ff8db3" : "#6dd5c7",
-            color: "#fff"
-          }}>
+          <div key={k.id} style={{ flex: 1, padding: 20, background: k.id === 1 ? "#ff8db3" : "#6dd5c7", color: "#fff" }}>
             <h3>{k.name}</h3>
             <h1>{k.points}</h1>
           </div>
@@ -133,22 +104,20 @@ export default function App() {
       </div>
 
       {/* 加點 */}
-      <div style={{ marginTop: 20 }}>
-        <button onClick={() => addPoint(10)}>+10</button>
-        <button onClick={() => addPoint(50)}>+50</button>
-      </div>
+      <button onClick={() => addPoint(10)}>+10</button>
+      <button onClick={() => addPoint(50)}>+50</button>
 
       {/* 任務 */}
-      <h3>每週任務</h3>
+      <h3>任務</h3>
       {state.tasks.map(t => (
         <div key={t.id}>
-          {t.name} +{t.points}
+          {t.name}
           <button onClick={() => addPoint(t.points)}>完成</button>
         </div>
       ))}
 
       {/* 獎勵 */}
-      <h3>兌換獎勵</h3>
+      <h3>兌換</h3>
       {state.rewards.map(r => (
         <div key={r.id}>
           {r.name} ({r.cost})
@@ -159,9 +128,7 @@ export default function App() {
       {/* 排行榜 */}
       <h3>排行榜</h3>
       {ranking.map((k, i) => (
-        <div key={k.id}>
-          {i + 1}. {k.name} {k.points}
-        </div>
+        <div key={k.id}>{i + 1}. {k.name} {k.points}</div>
       ))}
 
       {/* 紀錄 */}
