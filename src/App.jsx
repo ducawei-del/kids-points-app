@@ -9,9 +9,10 @@ const defaultState = {
   ],
   recorder: "媽媽",
   rewards: [
-    { id: 1, name: "看卡通 30 分鐘", cost: 10 },
-    { id: 2, name: "小點心", cost: 15 },
-    { id: 3, name: "小禮物", cost: 30 }
+    { id: 1, name: "做指甲", cost: 300 },
+    { id: 2, name: "使用手機30分鐘", cost: 100 },
+    { id: 3, name: "去公園玩", cost: 35 },
+    { id: 4, name: "買100元以下文具", cost: 80 }
   ],
   weeklyTasks: [
     { id: 1, title: "閱讀一本書", description: "並與爸媽分享心得", points: 5 },
@@ -63,6 +64,9 @@ export default function App() {
   const [taskDescription, setTaskDescription] = useState("");
   const [taskPoints, setTaskPoints] = useState(1);
   const [editingTaskId, setEditingTaskId] = useState(null);
+  const [rewardName, setRewardName] = useState("");
+  const [rewardCost, setRewardCost] = useState(1);
+  const [editingRewardId, setEditingRewardId] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
   const { kids, recorder, rewards, weeklyTasks, history, activeKidId, tab } = state;
@@ -131,6 +135,47 @@ export default function App() {
     );
 
     addHistory(activeKid.name, "兌換獎勵", `兌換：${rewardName}`, -cost);
+  };
+
+  const saveReward = () => {
+    const cost = Number(rewardCost) || 0;
+    if (!rewardName.trim() || !cost) return;
+
+    if (editingRewardId) {
+      patchState({
+        rewards: rewards.map(item =>
+          item.id === editingRewardId
+            ? { ...item, name: rewardName.trim(), cost }
+            : item
+        )
+      });
+      setEditingRewardId(null);
+    } else {
+      patchState({
+        rewards: [
+          ...rewards,
+          { id: Date.now(), name: rewardName.trim(), cost }
+        ]
+      });
+    }
+
+    setRewardName("");
+    setRewardCost(1);
+  };
+
+  const editReward = (reward) => {
+    setEditingRewardId(reward.id);
+    setRewardName(reward.name);
+    setRewardCost(reward.cost);
+  };
+
+  const deleteReward = (id) => {
+    patchState({ rewards: rewards.filter(item => item.id !== id) });
+    if (editingRewardId === id) {
+      setEditingRewardId(null);
+      setRewardName("");
+      setRewardCost(1);
+    }
   };
 
   const handleAvatarUpload = (event, kidId) => {
@@ -368,14 +413,42 @@ export default function App() {
                       <div style={{ fontWeight: 900, fontSize: 18, color: "#111827" }}>{item.name}</div>
                       <div style={{ color: "#9ca3af", fontWeight: 800, marginTop: 4 }}>需要 {item.cost} 點</div>
                     </div>
-                    <button
-                      onClick={() => redeemReward(item.cost, item.name)}
-                      style={{ border: "none", borderRadius: 14, padding: "12px 14px", background: activeKid.points >= item.cost ? activeKid.accent : "#d1d5db", color: "#fff", fontWeight: 900, cursor: activeKid.points >= item.cost ? "pointer" : "not-allowed" }}
-                    >
-                      兌換
-                    </button>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      <button
+                        onClick={() => redeemReward(item.cost, item.name)}
+                        style={{ border: "none", borderRadius: 14, padding: "12px 14px", background: activeKid.points >= item.cost ? activeKid.accent : "#d1d5db", color: "#fff", fontWeight: 900, cursor: activeKid.points >= item.cost ? "pointer" : "not-allowed" }}
+                      >
+                        兌換
+                      </button>
+                      <button onClick={() => editReward(item)} style={{ border: "1px solid #d1d5db", borderRadius: 12, padding: "10px 12px", background: "#fff", color: "#374151", fontWeight: 900, cursor: "pointer" }}>修改</button>
+                      <button onClick={() => deleteReward(item.id)} style={{ border: "1px solid #fecaca", borderRadius: 12, padding: "10px 12px", background: "#fff1f2", color: "#e11d48", fontWeight: 900, cursor: "pointer" }}>刪除</button>
+                    </div>
                   </div>
                 ))}
+
+                <div style={{ borderTop: "1px solid #ececec", paddingTop: 16 }}>
+                  <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 12, color: "#111827" }}>{editingRewardId ? "修改獎勵" : "新增獎勵"}</div>
+                  <input
+                    type="text"
+                    value={rewardName}
+                    onChange={(e) => setRewardName(e.target.value)}
+                    placeholder="獎勵名稱（例如：做指甲）"
+                    style={{ width: "100%", boxSizing: "border-box", border: "2px solid #ececec", borderRadius: 16, padding: "14px 16px", fontSize: 16, fontWeight: 700, marginBottom: 10 }}
+                  />
+                  <input
+                    type="number"
+                    value={rewardCost}
+                    onChange={(e) => setRewardCost(e.target.value)}
+                    placeholder="需要幾點"
+                    style={{ width: "100%", boxSizing: "border-box", border: "2px solid #ececec", borderRadius: 16, padding: "14px 16px", fontSize: 16, fontWeight: 700, marginBottom: 12 }}
+                  />
+                  <button
+                    onClick={saveReward}
+                    style={{ width: "100%", border: "none", borderRadius: 16, padding: "14px 16px", background: "#111827", color: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer" }}
+                  >
+                    {editingRewardId ? "儲存修改" : "新增獎勵"}
+                  </button>
+                </div>
               </div>
             )}
           </div>
