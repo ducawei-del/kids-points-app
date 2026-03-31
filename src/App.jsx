@@ -172,7 +172,25 @@ export default function App() {
       docRef,
       (snap) => {
         if (snap.exists()) {
-          setState({ ...defaultState, ...snap.data() });
+          const raw = snap.data();
+          const mergedKids = defaultState.kids.map((baseKid) => {
+            const savedKid = Array.isArray(raw.kids)
+              ? raw.kids.find((k) => k.id === baseKid.id)
+              : null;
+            return {
+              ...baseKid,
+              ...(savedKid || {})
+            };
+          });
+
+          setState({
+            ...defaultState,
+            ...raw,
+            kids: mergedKids,
+            rewards: Array.isArray(raw.rewards) ? raw.rewards : defaultState.rewards,
+            weeklyTasks: Array.isArray(raw.weeklyTasks) ? raw.weeklyTasks : defaultState.weeklyTasks,
+            history: Array.isArray(raw.history) ? raw.history : defaultState.history
+          });
         } else {
           setDoc(docRef, defaultState);
         }
